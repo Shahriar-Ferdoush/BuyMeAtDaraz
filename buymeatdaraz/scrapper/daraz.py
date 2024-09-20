@@ -47,7 +47,6 @@ async def async_daraz_scraper(url: str):
         # Go to Daraz URL
         await page.goto(
             url=url,
-            url=url,
             timeout=100000,
         )
 
