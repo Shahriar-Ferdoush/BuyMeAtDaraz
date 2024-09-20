@@ -1,6 +1,7 @@
 import asyncio
-from playwright.async_api import async_playwright
+
 import pandas as pd
+from playwright.async_api import async_playwright
 
 
 async def scrape_daraz():
@@ -10,7 +11,8 @@ async def scrape_daraz():
         page = await browser.new_page()
         # Go to Daraz URL
         await page.goto(
-            "https://www.daraz.com.bd/catalog/?spm=a2a0e.searchlist.search.d_go.1fee364apvjEuu&q=men%20watch"
+            "https://www.daraz.com.bd/catalog/?spm=a2a0e.searchlist.search.d_go.1fee364apvjEuu&q=men%20watch",
+            timeout=100000,
         )
 
         # Extract information
@@ -42,6 +44,14 @@ async def scrape_daraz():
                 "div._6uN7R > span._1cEkb > span"
             )
             result["sold"] = await sold_element.inner_text() if sold_element else "N/A"
+
+            # Product link
+            link_element = await listing.query_selector("div.RfADt > a")
+            if link_element:
+                relative_link = await link_element.get_attribute("href")
+                result["link"] = f"https:{relative_link}"
+            else:
+                result["link"] = "N/A"
 
             # Only add the result if it contains valid data
             if result["title"] != "N/A" or result["price"] != "N/A":
