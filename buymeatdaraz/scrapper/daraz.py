@@ -39,6 +39,49 @@ def search_daraz(query: str) -> str:
         return search_result_url
 
 
+def extract_information_for_products(listings) -> list:
+    """
+    This function extracts information for each product listing on the Daraz search result page.
+    """
+    results = []
+    for listing in listings:
+        result = {}
+
+        # Title
+        title_element = listing.query_selector("div.RfADt > a")
+        result["title"] = (
+            title_element.get_attribute("title") if title_element else "N/A"
+        )
+
+        # Price
+        price_element = listing.query_selector("div.aBrP0 > span.ooOxS")
+        result["price"] = price_element.inner_text() if price_element else "N/A"
+
+        # Offer Percentage
+        offer_element = listing.query_selector("div.WNoq3 > span.IcOsH")
+        result["offer_percentage"] = (
+            offer_element.inner_text() if offer_element else "N/A"
+        )
+
+        # Number of sold items
+        sold_element = listing.query_selector("div._6uN7R > span._1cEkb > span")
+        result["sold"] = sold_element.inner_text() if sold_element else "N/A"
+
+        # Product link
+        link_element = listing.query_selector("div.RfADt > a")
+        if link_element:
+            relative_link = link_element.get_attribute("href")
+            result["link"] = f"https:{relative_link}"
+        else:
+            result["link"] = "N/A"
+
+        # Only add the result if it contains valid data
+        if result["title"] != "N/A" or result["price"] != "N/A":
+            results.append(result)
+
+    return results
+
+
 async def async_daraz_scraper(url: str):
     async with async_playwright() as pw:
         # Launch new browser
@@ -51,46 +94,8 @@ async def async_daraz_scraper(url: str):
         )
 
         # Extract information
-        results = []
         listings = await page.query_selector_all('div[data-qa-locator="product-item"]')
-        for listing in listings:
-            result = {}
-
-            # Title
-            title_element = await listing.query_selector("div.RfADt > a")
-            result["title"] = (
-                await title_element.get_attribute("title") if title_element else "N/A"
-            )
-
-            # Price
-            price_element = await listing.query_selector("div.aBrP0 > span.ooOxS")
-            result["price"] = (
-                await price_element.inner_text() if price_element else "N/A"
-            )
-
-            # Offer Percentage
-            offer_element = await listing.query_selector("div.WNoq3 > span.IcOsH")
-            result["offer_percentage"] = (
-                await offer_element.inner_text() if offer_element else "N/A"
-            )
-
-            # Number of sold items
-            sold_element = await listing.query_selector(
-                "div._6uN7R > span._1cEkb > span"
-            )
-            result["sold"] = await sold_element.inner_text() if sold_element else "N/A"
-
-            # Product link
-            link_element = await listing.query_selector("div.RfADt > a")
-            if link_element:
-                relative_link = await link_element.get_attribute("href")
-                result["link"] = f"https:{relative_link}"
-            else:
-                result["link"] = "N/A"
-
-            # Only add the result if it contains valid data
-            if result["title"] != "N/A" or result["price"] != "N/A":
-                results.append(result)
+        results = extract_information_for_products(listings)
 
         # Close browser
         await browser.close()
@@ -111,42 +116,8 @@ def sync_daraz_scraper(url: str):
         page.goto(url=url, timeout=100000)
 
         # Extract information
-        results = []
         listings = page.query_selector_all('div[data-qa-locator="product-item"]')
-        for listing in listings:
-            result = {}
-
-            # Title
-            title_element = listing.query_selector("div.RfADt > a")
-            result["title"] = (
-                title_element.get_attribute("title") if title_element else "N/A"
-            )
-
-            # Price
-            price_element = listing.query_selector("div.aBrP0 > span.ooOxS")
-            result["price"] = price_element.inner_text() if price_element else "N/A"
-
-            # Offer Percentage
-            offer_element = listing.query_selector("div.WNoq3 > span.IcOsH")
-            result["offer_percentage"] = (
-                offer_element.inner_text() if offer_element else "N/A"
-            )
-
-            # Number of sold items
-            sold_element = listing.query_selector("div._6uN7R > span._1cEkb > span")
-            result["sold"] = sold_element.inner_text() if sold_element else "N/A"
-
-            # Product link
-            link_element = listing.query_selector("div.RfADt > a")
-            if link_element:
-                relative_link = link_element.get_attribute("href")
-                result["link"] = f"https:{relative_link}"
-            else:
-                result["link"] = "N/A"
-
-            # Only add the result if it contains valid data
-            if result["title"] != "N/A" or result["price"] != "N/A":
-                results.append(result)
+        results = extract_information_for_products(listings)
 
         # Close browser
         browser.close()
