@@ -5,10 +5,44 @@ from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
 
 
+def search_daraz(query: str) -> str:
+    """
+    This function simulates typing a query into the Daraz search bar,
+    submits the search, and returns the search result URL.
+    """
+    with sync_playwright() as pw:
+        # Launch browser
+        browser = pw.chromium.launch(headless=False)
+        page = browser.new_page()
+
+        # Navigate to Daraz homepage
+        page.goto("https://www.daraz.com.bd", timeout=100000)
+
+        # Find the search bar and type the query
+        search_box = page.query_selector('input[name="q"]')
+        search_box.fill(query)
+
+        # Press enter to search
+        search_box.press("Enter")
+
+        # Wait for navigation to complete
+        page.wait_for_load_state("networkidle", timeout=100000)
+
+        # Get the URL of the current page (the search result page)
+        search_result_url = page.url
+
+        # Close browser
+        browser.close()
+
+        print(search_result_url)
+
+        return search_result_url
+
+
 async def async_daraz_scraper(url: str):
     async with async_playwright() as pw:
         # Launch new browser
-        browser = await pw.chromium.launch(headless=True)
+        browser = await pw.chromium.launch(headless=False)
         page = await browser.new_page()
         # Go to Daraz URL
         await page.goto(
@@ -65,15 +99,16 @@ async def async_daraz_scraper(url: str):
 
 
 def sync_daraz_scraper(url: str):
+    """
+    This function scrapes product data from the provided Daraz search results page URL.
+    """
     with sync_playwright() as pw:
-        # Launch new browser
+        # Launch browser
         browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
-        # Go to Daraz URL
-        page.goto(
-            url=url,
-            timeout=100000,
-        )
+
+        # Go to the provided search result URL
+        page.goto(url=url, timeout=100000)
 
         # Extract information
         results = []
@@ -119,17 +154,23 @@ def sync_daraz_scraper(url: str):
         return results
 
 
-# Run the scraper and save results to a CSV file
-# results = asyncio.run(
-#     async_daraz_scraper(
-#         "https://www.daraz.com.bd/catalog/?spm=a2a0e.searchlist.search.d_go.1fee364apvjEuu&q=men%20watch"
-#     )
-# )
+def main(search_term: str):
+    """
+    Main function to handle the search and scraping process.
+    """
+    # Get the search result URL by simulating a search on Daraz
+    search_url = search_daraz(search_term)
 
-results = sync_daraz_scraper(
-    "https://www.daraz.com.bd/catalog/?spm=a2a0e.searchlist.search.d_go.1fee364apvjEuu&q=men%20watch"
-)
+    # Scrape the results from the search result URL
+    results = sync_daraz_scraper(search_url)
+
+    # Save the results to a CSV file
+    df = pd.DataFrame(results)
+    df.to_csv(f"output/daraz_{search_term}_listings.csv", index=False)
+    print(f"Results saved to output/daraz_{search_term}_listings.csv")
 
 
-df = pd.DataFrame(results)
-df.to_csv("output/daraz_products_listings.csv", index=False)
+# Example usage
+if __name__ == "__main__":
+    search_query = "men watch"  # You can change the search term as needed
+    main(search_query)
