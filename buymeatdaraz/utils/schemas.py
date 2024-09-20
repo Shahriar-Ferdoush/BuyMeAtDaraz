@@ -1,4 +1,4 @@
-from langchain_core.pydantic_v1 import BaseModel, Field, validator
+from pydantic import BaseModel, HttpUrl, Field, field_validator
 
 
 class DarazProduct(BaseModel):
@@ -7,17 +7,17 @@ class DarazProduct(BaseModel):
     discount: float = Field(..., description="Discount percentage")
     rating: float = Field(..., description="Rating of the product")
     sold: int = Field(..., description="Number of items sold")
-    image: str = Field(..., description="Image URL of the product")
-    url: str = Field(..., description="Product URL")
-
-    @validator("price", "discount", "rating", "sold")
-    def validate_positive(cls, v):
-        if v < 0:
-            raise ValueError("Value must be positive")
+    image: str | None = Field(..., description="Image URL of the product")
+    url: HttpUrl  = Field(..., description="Product URL")
+    
+    
+    # Field validator for the image URL
+    @field_validator("image", mode="before")
+    def validate_image_url(cls, v):
+        if v == "N/A" or not v.startswith("http"):
+            # Set to None or a default image URL
+            return None  # Or return a default image URL
         return v
 
-    @validator("image", "url")
-    def validate_url(cls, v):
-        if not v.startswith("http"):
-            raise ValueError("Invalid URL format")
-        return v
+    class Config:
+        str_strip_whitespace = True  # Renamed config option in Pydantic V2
