@@ -42,10 +42,11 @@ def search_daraz(query: str) -> str:
 async def async_daraz_scraper(url: str):
     async with async_playwright() as pw:
         # Launch new browser
-        browser = await pw.chromium.launch(headless=False)
+        browser = await pw.chromium.launch(headless=True)
         page = await browser.new_page()
         # Go to Daraz URL
         await page.goto(
+            url=url,
             url=url,
             timeout=100000,
         )
