@@ -1,8 +1,21 @@
 import asyncio
+import os
 
 import pandas as pd
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
+from dotenv import load_dotenv
+
+# Load environment variables from a .env file
+load_dotenv()
+api_key = os.getenv("GOOGLE_API_TOKEN")
+
+print(api_key)
+
+# Set the API key in the environment if it's not already set
+api_key = os.getenv("GOOGLE_API_TOKEN")
+if "GOOGLE_API_KEY" not in os.environ:
+    os.environ["GOOGLE_API_KEY"] = api_key
 
 
 def search_daraz(query: str) -> str:
