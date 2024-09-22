@@ -1,15 +1,15 @@
 from daraz import sync_daraz_scraper, search_daraz
-from utils.database.csv import save_products_to_csv
+from utils.database.sqlite import save_products_to_db
 
 
 def main(search_term: str):
     search_url = search_daraz(search_term)
     results = sync_daraz_scraper(search_url)
 
-    output_file = f"output/daraz_{search_term}_listings.csv"
-    save_products_to_csv(results, output_file)
+    # Save the products to SQLite database
+    save_products_to_db(results, "database/daraz_products.db")
 
-    print(f"Results saved to {output_file}")
+    print(f"Results saved to daraz_products.db")
 
 
 if __name__ == "__main__":

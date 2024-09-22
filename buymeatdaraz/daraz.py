@@ -5,9 +5,9 @@ import pandas as pd
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
-from utils.schemas import DarazProduct
 from utils.database.csv import save_products_to_csv
 from utils.product_value_processing import convert_to_int
+from utils.schemas import DarazProduct
 
 # Load environment variables from a .env file
 load_dotenv()
@@ -18,15 +18,14 @@ def search_daraz(query: str) -> str:
     """
     Simulate typing a query into the Daraz search bar, submits the search,
     and returns the search result URL.
-    
+
     Args:
         query (str): The search query to use.
-    
+
     Returns:
         str: The URL of the search result page.
     """
     with sync_playwright() as pw:
-        #
         browser = pw.chromium.launch(headless=False)
         page = browser.new_page()
         page.goto("https://www.daraz.com.bd", timeout=100000)
@@ -63,7 +62,11 @@ def extract_information_for_products(listings) -> list:
 
             price_element = listing.query_selector("div.aBrP0 > span.ooOxS")
             price_text = price_element.inner_text() if price_element else "N/A"
-            price = float(price_text.replace("৳", "").replace(",", "").strip())
+            price = (
+                float(price_text.replace("৳", "").replace(",", "").strip())
+                if price_text != "N/A"
+                else 0.0
+            )
 
             offer_element = listing.query_selector("div.WNoq3 > span.IcOsH")
             discount_text = (
@@ -71,7 +74,7 @@ def extract_information_for_products(listings) -> list:
                 if offer_element
                 else "0"
             )
-            discount = float(discount_text)
+            discount = float(discount_text) if discount_text != "N/A" else 0.0
 
             sold_element = listing.query_selector("div._6uN7R > span._1cEkb > span")
             sold_text = (
@@ -79,32 +82,25 @@ def extract_information_for_products(listings) -> list:
                 if sold_element
                 else "0"
             )
-            sold = convert_to_int(sold_text)
+            sold = convert_to_int(sold_text) if sold_text != "N/A" else 0
 
             link_element = listing.query_selector("div.RfADt > a")
             relative_link = (
                 link_element.get_attribute("href") if link_element else "N/A"
             )
-            url = f"https:{relative_link}"
+            url = f"https:{relative_link}" if relative_link != "N/A" else "N/A"
 
-            image_element = listing.query_selector("img[type='product']")
-            image_url = (
-                image_element.get_attribute("src")
-                if image_element
-                and image_element.get_attribute("src").startswith("http")
-                else "N/A"
-            )
 
-            # Add the product to the results list using the schema
+            # Use DarazProduct schema for validation
             product = DarazProduct(
                 name=name,
                 price=price,
                 discount=discount,
                 rating=0.0,  # No rating info from the HTML provided
                 sold=sold,
-                image=image_url,
-                url=url,
+                url=url,  # This will be validated by the Pydantic schema
             )
+
             results.append(product.dict())
 
         except Exception as e:
@@ -117,10 +113,10 @@ def extract_information_for_products(listings) -> list:
 async def async_daraz_scraper(url: str) -> list:
     """
     Asynchronously loads the Daraz search result page and extracts product information.
-    
+
     Args:
         url (str): The URL of the Daraz search result page.
-    
+
     Returns:
         list: A list of dictionaries containing product information.
     """
@@ -129,11 +125,11 @@ async def async_daraz_scraper(url: str) -> list:
         browser = await pw.chromium.launch(headless=True)
         page = await browser.new_page()
         await page.goto(url, timeout=100000)
-        
+
         # Extract product listings and information
         listings = await page.query_selector_all('div[data-qa-locator="product-item"]')
         results = extract_information_for_products(listings)
-        
+
         # Close the browser
         await browser.close()
         return results
@@ -142,10 +138,10 @@ async def async_daraz_scraper(url: str) -> list:
 def sync_daraz_scraper(url: str):
     """
     Synchronously loads the Daraz search result page and extracts product information.
-    
+
     Args:
         url (str): The URL of the Daraz search result page.
-    
+
     Returns:
         list: A list of dictionaries containing product information.
     """
@@ -154,11 +150,11 @@ def sync_daraz_scraper(url: str):
         browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url, timeout=100000)
-        
+
         # Extract product listings and information
         listings = page.query_selector_all('div[data-qa-locator="product-item"]')
         results = extract_information_for_products(listings)
-        
+
         # Close the browser
         browser.close()
         return results
