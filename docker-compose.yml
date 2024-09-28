@@ -1,0 +1,13 @@
+name: buymeatdaraz
+services:
+  backend:
+    build: ./backend
+    container_name: ${COMPOSE_PROJECT_NAME}-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./database:/app/database
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
